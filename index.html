@@ -174,6 +174,15 @@ body, .shell, .shell *, .tooltip, .tooltip * {
   border-color: #aebdb7;
   color: #000000 !important;
 }
+
+/* Compact county-specific 2025 court breakdown. */
+.court-breakdown{margin-top:15px;padding-top:12px;border-top:1px solid var(--border);max-width:440px}
+.court-breakdown[hidden]{display:none!important}
+.court-breakdown-heading{font-size:11px;font-weight:700;letter-spacing:.015em;margin-bottom:8px}
+.court-breakdown-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:14px;row-gap:5px;align-items:baseline;font-size:12px;line-height:1.35}
+.court-breakdown-value{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.map-hint{color:#74817d!important;font-style:italic}
+@media(max-width:415px){.court-breakdown{margin-top:12px;padding-top:10px}.court-breakdown-grid{font-size:11.5px}}
 </style>
 </head>
 <body>
@@ -184,6 +193,13 @@ body, .shell, .shell *, .tooltip, .tooltip * {
 <h1><span class="lighter" id="headline-location">Oregon</span><span class="heavier">eviction filings</span></h1>
         <p class="lede" id="description">In Oregon, eviction cases can be filed in two types of courts, <a href="https://www.courts.oregon.gov/about/Pages/default.aspx" target="_blank" rel="noopener noreferrer">circuit courts and justice courts</a>. Our research team has access to the case information and court documents for eviction cases filed in any of the circuit courts through the Oregon Judicial Department's online court records service, OJCIN OnLine. For eviction cases filed in circuit courts, we are able to report multiple data points.</p>
         <p class="lede lede-follow" id="description-follow">Court records and case documents for eviction cases filed in a justice court are harder to access. Each justice court maintains its own records and may require an in-person visit to view court records. Therefore, we are unable to include data about eviction cases filed in justice courts on the regular updates on our website.</p>
+        <section class="court-breakdown" id="court-breakdown" aria-label="2025 filings by court" hidden>
+          <div class="court-breakdown-heading">2025 filings by court</div>
+          <div class="court-breakdown-grid">
+            <span>Circuit court</span><strong id="circuit-share" class="court-breakdown-value">—</strong>
+            <span>Justice court</span><strong id="justice-share" class="court-breakdown-value">—</strong>
+          </div>
+        </section>
         <p class="county-note" id="county-note" hidden></p>
         <div class="reset-row" id="reset-row" hidden>
           <button class="reset-btn" type="button" id="reset-btn">VIEW OREGON TOTALS ↗</button>
@@ -285,8 +301,18 @@ const tooltipCounty=document.getElementById('tooltip-county');
 const tooltipCourt=document.getElementById('tooltip-court');
 const tooltipVis=document.getElementById('tooltip-vis');
 const countyNote=document.getElementById('county-note');
+const courtBreakdown=document.getElementById('court-breakdown');
+const circuitShare=document.getElementById('circuit-share');
+const justiceShare=document.getElementById('justice-share');
 const paths=[...document.querySelectorAll('path.county')];
 const fmt=n=>n.toLocaleString('en-US');
+const formatCourtShare=(count,total)=>fmt(count)+' ('+(total>0?(100*count/total).toFixed(1)+'%':'N/A')+')';
+function showCourtBreakdown(r){
+  circuitShare.textContent=formatCourtShare(r.circuit_filings_2025,r.filings_2025);
+  justiceShare.textContent=formatCourtShare(r.justice_filings_2025,r.filings_2025);
+  courtBreakdown.hidden=false;
+}
+
 for (const r of byName){const opt=document.createElement('option');opt.value=r.county;opt.textContent=r.county+' County';select.appendChild(opt);}
 function changeMetric(r){
   const delta=r.change_pct;
@@ -308,6 +334,7 @@ function choose(name){
     fitCountyHeading();
     document.getElementById('description').innerHTML=stateDescription;
     document.getElementById('description-follow').hidden=false;
+    courtBreakdown.hidden=true;
     countyNote.hidden=true;
     countyNote.textContent='';
     changeMetric({filings_2025:32704,change_pct:7,change_absolute:2197,filings_per_100_renter_units_2025:5.2});
@@ -320,8 +347,9 @@ function choose(name){
   const courtPhrase=r.court_type==='Justice Court Only'?'the justice court only':r.court_type==='Circuit Court Only'?'the circuit court only':'both circuit court and justice court';
   document.getElementById('description').textContent='In '+r.county+' County, eviction cases can be filed in '+courtPhrase+'. In 2025, '+fmt(r.filings_2025)+' eviction cases were filed in this county.';
   document.getElementById('description-follow').hidden=true;
+  showCourtBreakdown(r);
   if (r.visibility_basis==='2024') {
-    countyNote.textContent='Note: No eviction cases were filed in '+r.county+' County in 2025, so its visibility classification is based on 2024 court filing data.';
+    countyNote.textContent='Note: No eviction cases were filed in '+r.county+' County in 2025, so its visibility classification is based on 2024 court filing data. Court-specific percentages are not applicable for 2025.';
     countyNote.hidden=false;
   } else {
     countyNote.hidden=true;
